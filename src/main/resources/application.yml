@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: product-api
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:productdb}
+    username: ${DB_USERNAME:product_user}
+    password: ${DB_PASSWORD:product_password}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  logging:
+    level:
+      org.springframework.security: DEBUG
+
+server:
+  port: ${SERVER_PORT:8080}
+
+application:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:VGhpc0lzQVN0cm9uZ0Rldk9ubHlTZWNyZXRLZXlGb3JKV1RUMjAyNg==}
+      access-token-expiration-ms: 900000
+      refresh-token-expiration-ms: 604800000
