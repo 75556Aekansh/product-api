@@ -27,6 +27,7 @@ services:
       DB_USERNAME: ${POSTGRES_USER:-product_user}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-product_password}
       SERVER_PORT: 8080
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:
