@@ -8,6 +8,8 @@ import com.zestindia.assignment.productapi.exception.ProductNotFoundException;
 import com.zestindia.assignment.productapi.repository.ProductRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ProductService {
 
-    private static final String SYSTEM_USER = "system";
 
     private final ProductRepository productRepository;
 
@@ -33,7 +34,7 @@ public class ProductService {
 
     @Transactional
     public ProductResponse create(CreateProductRequest request) {
-        Product product = new Product(request.productName().trim(), SYSTEM_USER);
+        Product product = new Product(request.productName().trim(),currentUsername());
         return ProductResponse.from(productRepository.save(product));
     }
 
@@ -41,7 +42,8 @@ public class ProductService {
     public ProductResponse update(Long productId, UpdateProductRequest request) {
         Product product = findProduct(productId);
         product.setProductName(request.productName().trim());
-        product.setModifiedBy(SYSTEM_USER);
+        product.setModifiedBy(currentUsername());
+        Product updatedProduct = productRepository.saveAndFlush(product);
         return ProductResponse.from(product);
     }
 
@@ -53,5 +55,18 @@ public class ProductService {
     private Product findProduct(Long productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));
+    }
+
+    private String currentUsername() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new IllegalStateException("No authenticated user is available");
+        }
+
+        return authentication.getName();
     }
 }

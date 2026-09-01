@@ -73,27 +73,13 @@ public class RefreshToken {
         return id;
     }
 
-    public String getTokenHash() {
-        return tokenHash;
-    }
 
     public AppUser getUser() {
         return user;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
     }
 
     public boolean isRevoked() {
         return revoked;
     }
 
-    public Instant getCreatedOn() {
-        return createdOn;
-    }
-
-    public Instant getRevokedOn() {
-        return revokedOn;
-    }
 }
