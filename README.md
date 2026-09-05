@@ -268,6 +268,95 @@ aekansh | ROLE_ADMIN
 
 Log in again and use the returned access token for Product write operations.
 
+## Quick local demo data
+
+The following commands are optional and intended only for a local development database.
+
+### Seed products directly in PostgreSQL
+
+After Docker Compose is running, insert four sample products with one command:
+
+```bash
+docker compose exec database psql -U product_user -d productdb -c "INSERT INTO product (product_name, created_by, created_on) VALUES ('Wireless Keyboard', 'seed-script', CURRENT_TIMESTAMP), ('Gaming Mouse', 'seed-script', CURRENT_TIMESTAMP), ('27-inch Monitor', 'seed-script', CURRENT_TIMESTAMP), ('USB-C Headset', 'seed-script', CURRENT_TIMESTAMP);"
+```
+
+Register or log in as any user, authorize with the access token, and call:
+
+```http
+GET /api/v1/products?page=0&size=20
+```
+
+The four seeded products should appear in the response. Running the SQL command repeatedly inserts duplicates, so it is best used with a fresh local database.
+
+### Exercise admin POST and GET endpoints with PowerShell
+
+This end-to-end example registers a local user, grants the user `ROLE_ADMIN`, logs in, creates four products through the protected API, and retrieves them again.
+
+Run from the repository root while Docker Compose is running:
+
+```powershell
+$baseUrl = "http://localhost:8080"
+
+$registerBody = @{
+    username = "demo-admin"
+    email = "demo-admin@example.com"
+    password = "StrongPass@123"
+} | ConvertTo-Json
+
+$null = Invoke-RestMethod `
+    -Method Post `
+    -Uri "$baseUrl/api/v1/auth/register" `
+    -ContentType "application/json" `
+    -Body $registerBody
+
+docker compose exec database psql `
+    -U product_user `
+    -d productdb `
+    -c "INSERT INTO user_role (user_id, role_id) SELECT u.id, r.id FROM app_user u CROSS JOIN app_role r WHERE u.username = 'demo-admin' AND r.name = 'ROLE_ADMIN' ON CONFLICT DO NOTHING;"
+
+$loginBody = @{
+    username = "demo-admin"
+    password = "StrongPass@123"
+} | ConvertTo-Json
+
+$login = Invoke-RestMethod `
+    -Method Post `
+    -Uri "$baseUrl/api/v1/auth/login" `
+    -ContentType "application/json" `
+    -Body $loginBody
+
+$headers = @{
+    Authorization = "Bearer $($login.accessToken)"
+}
+
+$productNames = @(
+    "Laptop Stand",
+    "Mechanical Keyboard",
+    "Wireless Mouse",
+    "USB-C Dock"
+)
+
+$productNames | ForEach-Object {
+    $body = @{ productName = $_ } | ConvertTo-Json
+
+    Invoke-RestMethod `
+        -Method Post `
+        -Uri "$baseUrl/api/v1/products" `
+        -Headers $headers `
+        -ContentType "application/json" `
+        -Body $body
+}
+
+$products = Invoke-RestMethod `
+    -Method Get `
+    -Uri "$baseUrl/api/v1/products?page=0&size=20" `
+    -Headers $headers
+
+$products.content | Format-Table id, productName, createdBy, createdOn
+```
+
+If `demo-admin` already exists, either use a different username and email or reset only the disposable local environment before repeating the complete demo.
+
 ## Product examples
 
 ### Create a product
@@ -280,7 +369,7 @@ Content-Type: application/json
 
 ```json
 {
-  "productName": "Mouse"
+  "productName": "Wireless Keyboard"
 }
 ```
 
@@ -306,7 +395,7 @@ Example response:
   "content": [
     {
       "id": 1,
-      "productName": "Keyboard",
+      "productName": "Wireless Keyboard",
       "createdBy": "aekansh",
       "createdOn": "2026-09-01T10:00:00Z",
       "modifiedBy": null,
